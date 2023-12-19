@@ -25,7 +25,7 @@ class loss_hybrid(nn.Module):
         y_true = torch.istft(true_stft_real+1j*true_stft_imag, 512, 256, 512, window=torch.hann_window(512).pow(0.5).to(device))
         y_true = torch.sum(y_true * y_pred, dim=-1, keepdim=True) * y_true / (torch.sum(torch.square(y_true),dim=-1,keepdim=True) + 1e-8)
 
-        sisnr =  - torch.log10(torch.norm(y_true)**2 / torch.norm(y_pred - y_true)**2 + 1e-8)
+        sisnr =  - torch.log10(torch.norm(y_true, dim=-1, keepdim=True)**2 / torch.norm(y_pred - y_true, dim=-1, keepdim=True)**2 + 1e-8).mean()
 
         return 30*(real_loss + imag_loss) + 70*mag_loss + sisnr
 
