@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-class loss_hybrid(nn.Module):
+class HybridLoss(nn.Module):
     def __init__(self):
         super().__init__()
 
@@ -31,7 +31,7 @@ class loss_hybrid(nn.Module):
 
 
 if __name__ == "__main__":
-    loss_func = loss_hybrid()
+    loss_func = HybridLoss()
 
     pred_stft = torch.randn(1, 257, 63, 2)
     true_stft = torch.randn(1, 257, 63, 2)
