@@ -4,3 +4,6 @@ The paper has been accepted by ICASSP 2024.
 
 Audio examples are available at [Audio examples of GTCRN](https://o129y4mlmb.feishu.cn/docx/MQKZdsk6doJ44xx52rzcprz8nqt?edition_id=DjYg1m).
 
+## Pre-trained Models
+Pre-trained models are provided in `checkpoints`, which are trained on DNS3 and VCTK-DEMAND datasets, respectively.
+Inference procedure are presented in `infer.py`.
