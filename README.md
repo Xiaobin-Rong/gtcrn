@@ -6,4 +6,5 @@ Audio examples are available at [Audio examples of GTCRN](https://o129y4mlmb.fei
 
 ## Pre-trained Models
 Pre-trained models are provided in `checkpoints`, which are trained on DNS3 and VCTK-DEMAND datasets, respectively.
-Inference procedure are presented in `infer.py`.
+
+The inference procedure is presented in `infer.py`.
