@@ -1,0 +1,5 @@
+einops==0.7.0
+numpy==1.24.4
+ptflops==0.7
+soundfile==0.12.1
+torch==1.11.0
