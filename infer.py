@@ -16,7 +16,8 @@ assert fs == 16000
 
 ## inference
 input = torch.stft(torch.from_numpy(mix), 512, 256, 512, torch.hann_window(512).pow(0.5), return_complex=False)
-output = model(input[None])[0]
+with torch.no_grad():
+    output = model(input[None])[0]
 enh = torch.istft(output, 512, 256, 512, torch.hann_window(512).pow(0.5), return_complex=False)
 
 ## save enhanced wav
