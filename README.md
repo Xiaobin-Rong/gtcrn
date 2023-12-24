@@ -2,7 +2,7 @@
 This repository is the official implementation of paper "GTCRN: A Speech Enhancement Model Requiring Ultralow Computational Resources". 
 The paper has been accepted by ICASSP 2024.
 
-Audio examples are available at [Audio examples of GTCRN](https://htmlpreview.github.io/?https://github.com/Xiaobin-Rong/gtcrn/blob/main/GTCRN-demo/index.html).
+Audio examples are available at [Audio examples of GTCRN](https://htmlpreview.github.io/?https://github.com/Xiaobin-Rong/gtcrn_demo/blob/main/index.html).
 
 ## About GTCRN
 Grouped Temporal Convolutional Recurrent Network (GTCRN) is a speech enhancement model requiring ultralow computational resources, featuring only 23.7 K parameters and 39.6 MFLOPs.
