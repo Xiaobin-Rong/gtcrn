@@ -192,19 +192,19 @@ class GRNN(nn.Module):
 
 class DPGRNN(nn.Module):
     """Grouped Dual-path RNN"""
-    def __init__(self, numUnits, width, channel, **kwargs):
+    def __init__(self, input_size, width, hidden_size, **kwargs):
         super(DPGRNN, self).__init__(**kwargs)
-        self.numUnits = numUnits
+        self.input_size = input_size
         self.width = width
-        self.channel = channel
+        self.hidden_size = hidden_size
 
-        self.intra_rnn = GRNN(input_size=self.numUnits, hidden_size=self.numUnits//2, bidirectional=True)
-        self.intra_fc = nn.Linear(self.numUnits, self.numUnits)
-        self.intra_ln = nn.LayerNorm((width, numUnits), eps=1e-8)
+        self.intra_rnn = GRNN(input_size=input_size, hidden_size=hidden_size//2, bidirectional=True)
+        self.intra_fc = nn.Linear(hidden_size, hidden_size)
+        self.intra_ln = nn.LayerNorm((width, hidden_size), eps=1e-8)
 
-        self.inter_rnn = GRNN(input_size=self.numUnits, hidden_size=self.numUnits, bidirectional=False)
-        self.inter_fc = nn.Linear(self.numUnits, self.numUnits)
-        self.inter_ln = nn.LayerNorm(((width, numUnits)), eps=1e-8)
+        self.inter_rnn = GRNN(input_size=input_size, hidden_size=hidden_size, bidirectional=False)
+        self.inter_fc = nn.Linear(hidden_size, hidden_size)
+        self.inter_ln = nn.LayerNorm(((width, hidden_size)), eps=1e-8)
     
     def forward(self,x):
         """x: (B, C, T, F)"""
@@ -213,7 +213,7 @@ class DPGRNN(nn.Module):
         intra_x = x.reshape(x.shape[0] * x.shape[1], x.shape[2], x.shape[3])  # (B*T,F,C)
         intra_x = self.intra_rnn(intra_x)[0]  # (B*T,F,C)
         intra_x = self.intra_fc(intra_x)      # (B*T,F,C)
-        intra_x = intra_x.reshape(x.shape[0], -1, self.width, self.channel) # (B,T,F,C)
+        intra_x = intra_x.reshape(x.shape[0], -1, self.width, self.hidden_size) # (B,T,F,C)
         intra_x = self.intra_ln(intra_x)
         intra_out = torch.add(x, intra_x)
 
@@ -222,7 +222,7 @@ class DPGRNN(nn.Module):
         inter_x = x.reshape(x.shape[0] * x.shape[1], x.shape[2], x.shape[3]) 
         inter_x = self.inter_rnn(inter_x)[0]  # (B*F,T,C)
         inter_x = self.inter_fc(inter_x)      # (B*F,T,C)
-        inter_x = inter_x.reshape(x.shape[0], self.width, -1, self.channel) # (B,F,T,C)
+        inter_x = inter_x.reshape(x.shape[0], self.width, -1, self.hidden_size) # (B,F,T,C)
         inter_x = inter_x.permute(0,2,1,3)   # (B,T,F,C)
         inter_x = self.inter_ln(inter_x) 
         inter_out = torch.add(intra_out, inter_x)
