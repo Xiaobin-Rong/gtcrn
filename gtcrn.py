@@ -1,6 +1,6 @@
 """
-GTCRN: ShuffleNetV2 + SFE + TRA + 2 DPRNN
-Ultra tiny, 39.63 MFLOPs, 23.67 k params
+GTCRN: ShuffleNetV2 + SFE + TRA + 2 DPGRNN
+Ultra tiny, 39.63 MFLOPs, 23.67 K params
 """
 import torch
 import numpy as np
