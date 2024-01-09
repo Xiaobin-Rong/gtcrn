@@ -1,6 +1,6 @@
 # GTCRN
 This repository is the official implementation of paper "GTCRN: A Speech Enhancement Model Requiring Ultralow Computational Resources". 
-The paper has been accepted by ICASSP 2024, and will be accessible for online download starting from March 15th or later, according to the official schedule.
+The paper has been accepted by ICASSP 2024, and **will be accessible** for online download starting from March 15th or later, according to the official schedule.
 
 Audio examples are available at [Audio examples of GTCRN](https://htmlpreview.github.io/?https://github.com/Xiaobin-Rong/gtcrn_demo/blob/main/index.html).
 
