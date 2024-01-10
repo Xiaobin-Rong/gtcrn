@@ -353,20 +353,28 @@ class StreamGTCRN(nn.Module):
 
 
 if __name__ == "__main__":
+    import os
     import time
+    import soundfile as sf
     from gtcrn import GTCRN
     from modules.convert import convert_to_stream
     
     device = torch.device("cpu")
 
     model = GTCRN().to(device).eval()
+    model.load_state_dict(torch.load('onnx_models/model_trained_on_dns3.tar', map_location=device)['model'])
     stream_model = StreamGTCRN().to(device).eval()
     convert_to_stream(stream_model, model)
     
     """Streaming Conversion"""
-    x = torch.randn(1, 257, 100, 2).to(device)
-    y = model(x)
-        
+    ### offline inference
+    x = torch.from_numpy(sf.read('test_wavs/mix.wav', dtype='float32')[0])
+    x = torch.stft(x, 512, 256, 512, torch.hann_window(512).pow(0.5), return_complex=False)[None]
+    with torch.no_grad():
+        y = model(x)
+    y = torch.istft(y, 512, 256, 512, torch.hann_window(512).pow(0.5)).detach().cpu().numpy()
+    
+    ### online (streaming) inference
     conv_cache = torch.zeros(2, 1, 16, 16, 33).to(device)
     tra_cache = torch.zeros(2, 3, 1, 1, 16).to(device)
     inter_cache = torch.zeros(2, 1, 33, 16).to(device)
@@ -375,39 +383,46 @@ if __name__ == "__main__":
     for i in range(x.shape[2]):
         xi = x[:,:,i:i+1]
         tic = time.perf_counter()
-        yi, conv_cache, tra_cache, inter_cache = stream_model(xi, conv_cache, tra_cache, inter_cache)
+        with torch.no_grad():
+            yi, conv_cache, tra_cache, inter_cache = stream_model(xi, conv_cache, tra_cache, inter_cache)
         toc = time.perf_counter()
         times.append((toc-tic)*1000)
         ys.append(yi)
     ys = torch.cat(ys, dim=2)
+    ys = torch.istft(ys, 512, 256, 512, torch.hann_window(512).pow(0.5)).detach().cpu().numpy()
+    sf.write('test_wavs/enh.wav', ys.squeeze(), 16000)
     print(">>> inference time: mean: {:.1f}ms, max: {:.1f}ms, min: {:.1f}ms".format(sum(times)/len(times), max(times), min(times)))
-    print(">>> Streaming error:", (y-ys).abs().max().item())
-    
+    print(">>> Streaming error:", np.abs(y-ys).max())
+
     
     """ONNX Conversion"""
+    import os
     import time
     import onnx
     import onnxruntime
     from onnxsim import simplify
+    from librosa import istft
+    
     ## convert to onnx
     file = 'onnx_models/gtcrn.onnx'
+    if not os.path.exists(file):
+        input = torch.randn(1, 257, 1, 2, device=device)
+        torch.onnx.export(stream_model,
+                        (input, conv_cache, tra_cache, inter_cache),
+                        file,
+                        input_names = ['mix', 'conv_cache', 'tra_cache', 'inter_cache'],
+                        output_names = ['enh', 'conv_cache_out', 'tra_cache_out', 'inter_cache_out'],
+                        opset_version=11,
+                        verbose = False)
 
-    input = torch.randn(1, 257, 1, 2, device=device)
-    torch.onnx.export(stream_model,
-                    (input, conv_cache, tra_cache, inter_cache),
-                    file,
-                    input_names = ['mix', 'conv_cache', 'tra_cache', 'inter_cache'],
-                    output_names = ['enh', 'conv_cache_out', 'tra_cache_out', 'inter_cache_out'],
-                    opset_version=11,
-                    verbose = False)
+        onnx_model = onnx.load(file)
+        onnx.checker.check_model(onnx_model)
 
-    onnx_model = onnx.load(file)
-    onnx.checker.check_model(onnx_model)
-
-    ## simplify onnx model: exist bugs, to be solved.
-    # model_simp, check = simplify(onnx_model)
-    # assert check, "Simplified ONNX model could not be validated"
-    # onnx.save(model_simp, file.split('.onnx')[0] + '_simple.onnx')
+    ## simplify onnx model: exists bugs: to be solved.
+    # if not os.path.exists(file.split('.onnx')[0]+'_simple.onnx'):
+        # model_simp, check = simplify(onnx_model)
+        # assert check, "Simplified ONNX model could not be validated"
+        # onnx.save(model_simp, file.split('.onnx')[0] + '_simple.onnx')
 
     ## run onnx model
     session = onnxruntime.InferenceSession(file, None, providers=['CPUExecutionProvider'])
@@ -433,8 +448,11 @@ if __name__ == "__main__":
         T_list.append(toc-tic)
         outputs.append(out_i)
 
-    outputs = np.concatenate(outputs, axis=-2)
-    print(">>> Onnx error:", np.abs(ys.detach().cpu().numpy() - outputs).max())
+    outputs = np.concatenate(outputs, axis=2)
+    enhanced = istft(outputs[...,0] + 1j * outputs[...,1], n_fft=512, hop_length=256, win_length=512, window=np.hanning(512)**0.5)
+    sf.write('test_wavs/enh_stream.wav', enhanced.squeeze(), 16000)
+    
+    print(">>> Onnx error:", np.abs(ys - enhanced).max())
     print(">>> inference time: mean: {:.1f}ms, max: {:.1f}ms, min: {:.1f}ms".format(1e3*np.mean(T_list), 1e3*np.max(T_list), 1e3*np.min(T_list)))
-    print(">>> RTF:", 1e3*np.max(T_list) / 16)
+    print(">>> RTF:", 1e3*np.mean(T_list) / 16)
 
