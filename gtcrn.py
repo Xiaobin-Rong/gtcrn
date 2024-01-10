@@ -1,6 +1,6 @@
 """
 GTCRN: ShuffleNetV2 + SFE + TRA + 2 DPGRNN
-Ultra tiny, 39.63 MFLOPs, 23.67 K params
+Ultra tiny, 39.63 MMACs, 23.67 K params
 """
 import torch
 import numpy as np
@@ -137,14 +137,9 @@ class GTConvBlock(nn.Module):
 
         x1 = self.sfe(x1)
         h1 = self.point_act(self.point_bn1(self.point_conv1(x1)))
-        if not self.use_deconv:
-            h1 = nn.functional.pad(h1, [0, 0, self.pad_size, 0])
-            h1 = self.depth_act(self.depth_bn(self.depth_conv(h1)))
-            h1 = self.point_bn2(self.point_conv2(h1))
-        else:
-            h1 = self.depth_act(self.depth_bn(self.depth_conv(h1)))
-            h1 = self.point_bn2(self.point_conv2(h1))
-            h1 = h1[..., :-self.pad_size, :]
+        h1 = nn.functional.pad(h1, [0, 0, self.pad_size, 0])
+        h1 = self.depth_act(self.depth_bn(self.depth_conv(h1)))
+        h1 = self.point_bn2(self.point_conv2(h1))
 
         h1 = self.tra(h1)
 
@@ -255,9 +250,9 @@ class Decoder(nn.Module):
     def __init__(self):
         super().__init__()
         self.de_convs = nn.ModuleList([
-            GTConvBlock(16, 16, (3,3), stride=(1,1), padding=(0,1), dilation=(5,1), use_deconv=True),
-            GTConvBlock(16, 16, (3,3), stride=(1,1), padding=(0,1), dilation=(2,1), use_deconv=True),
-            GTConvBlock(16, 16, (3,3), stride=(1,1), padding=(0,1), dilation=(1,1), use_deconv=True),
+            GTConvBlock(16, 16, (3,3), stride=(1,1), padding=(2*5,1), dilation=(5,1), use_deconv=True),
+            GTConvBlock(16, 16, (3,3), stride=(1,1), padding=(2*2,1), dilation=(2,1), use_deconv=True),
+            GTConvBlock(16, 16, (3,3), stride=(1,1), padding=(2*1,1), dilation=(1,1), use_deconv=True),
             ConvBlock(16, 16, (1,5), stride=(1,2), padding=(0,2), groups=2, use_deconv=True, is_last=False),
             ConvBlock(16, 2, (1,5), stride=(1,2), padding=(0,2), use_deconv=True, is_last=True)
         ])
@@ -314,7 +309,7 @@ class GTCRN(nn.Module):
 
         feat = self.dpgrnn1(feat) # (B,16,T,33)
         feat = self.dpgrnn2(feat) # (B,16,T,33)
-        
+
         m_feat = self.decoder(feat, en_outs)
         
         m = self.erb.bs(m_feat)
