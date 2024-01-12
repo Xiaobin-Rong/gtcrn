@@ -15,7 +15,7 @@ Pre-trained models are provided in `checkpoints` folder, which were trained on D
 The inference procedure is presented in `infer.py`.
 
 ## Streaming Inference
-A streaming GTCRN is provided in `stream` folder, which demonstrates an impressive real-time factor (RTF) of 0.07 on the 12th Gen Intel(R) Core(TM) i5-12400 CPU running at 2.50 GHz.
+A streaming GTCRN is provided in `stream` folder, which demonstrates an impressive real-time factor (RTF) of **0.07** on the 12th Gen Intel(R) Core(TM) i5-12400 CPU @ 2.50 GHz.
 
 ## Related Repositories
 [SEtrain](https://github.com/Xiaobin-Rong/SEtrain): A training code template for DNN-based speech enhancement.
