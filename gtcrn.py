@@ -179,9 +179,9 @@ class GRNN(nn.Module):
     
     def shuffle(self, x1, x2):
         """x1, x2: (B,T,C)"""
-        x = torch.stack([x1, x2], dim=-1)        # (B,T,C,2)
-        x = x.transpose(2, 3).contiguous()       # (B,T,2,C)
-        x = rearrange(x, 'b t g c -> b t (g c)') # (B,T,2*C)
+        x = torch.stack([x1, x2], dim=2)         # (B,T,2,C)
+        x = x.transpose(2, 3).contiguous()       # (B,T,C,2)
+        x = rearrange(x, 'b t c g -> b t (c g)') # (B,T,2*C)
         return x
 
 
