@@ -4,4 +4,3 @@ The streaming conversion method used here is consistent with the streaming conve
 ## Acknowledgement
 I would like to express my gratitude to [Linghao Yu](https://github.com/SherryYu33) for resolving a bug in simplifying the `gtcrn.onnx` file. More details can be found in [issue-3](https://github.com/Xiaobin-Rong/gtcrn/issues/3).
 
-**Note: The codes have not been revised yet.**
