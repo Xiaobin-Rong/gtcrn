@@ -173,18 +173,11 @@ class GRNN(nn.Module):
         h1, h2 = h1.contiguous(), h2.contiguous()
         y1, h1 = self.rnn1(x1, h1)
         y2, h2 = self.rnn2(x2, h2)
-        y = self.shuffle(y1, y2)
-        h = self.shuffle(h1, h2)
+        y = torch.cat([y1, y2], dim=-1)
+        h = torch.cat([h1, h2], dim=-1)
         return y, h
     
-    def shuffle(self, x1, x2):
-        """x1, x2: (B,T,C)"""
-        x = torch.stack([x1, x2], dim=2)         # (B,T,2,C)
-        x = x.transpose(2, 3).contiguous()       # (B,T,C,2)
-        x = rearrange(x, 'b t c g -> b t (c g)') # (B,T,2*C)
-        return x
-
-
+    
 class DPGRNN(nn.Module):
     """Grouped Dual-path RNN"""
     def __init__(self, input_size, width, hidden_size, **kwargs):
@@ -201,7 +194,7 @@ class DPGRNN(nn.Module):
         self.inter_fc = nn.Linear(hidden_size, hidden_size)
         self.inter_ln = nn.LayerNorm(((width, hidden_size)), eps=1e-8)
     
-    def forward(self,x):
+    def forward(self, x):
         """x: (B, C, T, F)"""
         ## Intra RNN
         x = x.permute(0, 2, 3, 1)  # (B,T,F,C)
@@ -306,7 +299,7 @@ class GTCRN(nn.Module):
         feat = self.sfe(feat)     # (B,9,T,129)
 
         feat, en_outs = self.encoder(feat)
-
+        
         feat = self.dpgrnn1(feat) # (B,16,T,33)
         feat = self.dpgrnn2(feat) # (B,16,T,33)
 
