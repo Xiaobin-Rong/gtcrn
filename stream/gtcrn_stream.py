@@ -132,7 +132,7 @@ class StreamGTConvBlock(nn.Module):
         """x1, x2: (B,C,T,F)"""
         x = torch.stack([x1, x2], dim=1)
         x = x.transpose(1, 2).contiguous()  # (B,C,2,T,F)
-        x = rearrange(x, 'b c g t f -> b (c g) t f')  # (B,2C,T,F)
+        x = x.view(x.shape[0], -1, x.shape[3], x.shape[4])  # (B,2C,T,F)
         return x
 
     def forward(self, x, conv_cache, tra_cache):
@@ -141,7 +141,7 @@ class StreamGTConvBlock(nn.Module):
         conv_cache: (B, C, (kT-1)*dT, F)
         tra_cache: (1, B, C)
         """
-        x1, x2 = torch.chunk(x, chunks=2, dim=1)
+        x1, x2 = x[:,:x.shape[1]//2], x[:, x.shape[1]//2:]
 
         x1 = self.sfe(x1)
         h1 = self.point_act(self.point_bn1(self.point_conv1(x1)))
@@ -181,16 +181,9 @@ class GRNN(nn.Module):
         h1, h2 = h1.contiguous(), h2.contiguous()
         y1, h1 = self.rnn1(x1, h1)
         y2, h2 = self.rnn2(x2, h2)
-        y = self.shuffle(y1, y2)
-        h = self.shuffle(h1, h2)
+        y = torch.cat([y1, y2], dim=-1)
+        h = torch.cat([h1, h2], dim=-1)
         return y, h
-    
-    def shuffle(self, x1, x2):
-        """x1, x2: (B,T,C)"""
-        x = torch.stack([x1, x2], dim=2)         # (B,T,2,C)
-        x = x.transpose(2, 3).contiguous()       # (B,T,C,2)
-        x = rearrange(x, 'b t c g -> b t (c g)') # (B,T,2*C)
-        return x
 
 
 class DPGRNN(nn.Module):
@@ -341,7 +334,7 @@ class StreamGTCRN(nn.Module):
 
         feat, inter_cache[0] = self.dpgrnn1(feat, inter_cache[0]) # (B,16,T,33)
         feat, inter_cache[1] = self.dpgrnn2(feat, inter_cache[1]) # (B,16,T,33)
-        
+
         m_feat, conv_cache[1], tra_cache[1] = self.decoder(feat, en_outs, conv_cache[1], tra_cache[1])
         
         m = self.erb.bs(m_feat)
@@ -356,6 +349,7 @@ if __name__ == "__main__":
     import os
     import time
     import soundfile as sf
+    from tqdm import tqdm
     from gtcrn import GTCRN
     from modules.convert import convert_to_stream
     
@@ -373,28 +367,30 @@ if __name__ == "__main__":
     with torch.no_grad():
         y = model(x)
     y = torch.istft(y, 512, 256, 512, torch.hann_window(512).pow(0.5)).detach().cpu().numpy()
+    sf.write('test_wavs/enh.wav', y.squeeze(), 16000)
     
     ### online (streaming) inference
     conv_cache = torch.zeros(2, 1, 16, 16, 33).to(device)
     tra_cache = torch.zeros(2, 3, 1, 1, 16).to(device)
     inter_cache = torch.zeros(2, 1, 33, 16).to(device)
-    ys = []
-    times = []
-    for i in range(x.shape[2]):
-        xi = x[:,:,i:i+1]
-        tic = time.perf_counter()
-        with torch.no_grad():
-            yi, conv_cache, tra_cache, inter_cache = stream_model(xi, conv_cache, tra_cache, inter_cache)
-        toc = time.perf_counter()
-        times.append((toc-tic)*1000)
-        ys.append(yi)
-    ys = torch.cat(ys, dim=2)
-    ys = torch.istft(ys, 512, 256, 512, torch.hann_window(512).pow(0.5)).detach().cpu().numpy()
-    sf.write('test_wavs/enh.wav', ys.squeeze(), 16000)
-    print(">>> inference time: mean: {:.1f}ms, max: {:.1f}ms, min: {:.1f}ms".format(sum(times)/len(times), max(times), min(times)))
-    print(">>> Streaming error:", np.abs(y-ys).max())
+    # ys = []
+    # times = []
+    # for i in tqdm(range(x.shape[2])):
+    #     xi = x[:,:,i:i+1]
+    #     tic = time.perf_counter()
+    #     with torch.no_grad():
+    #         yi, conv_cache, tra_cache, inter_cache = stream_model(xi, conv_cache, tra_cache, inter_cache)
+    #     toc = time.perf_counter()
+    #     times.append((toc-tic)*1000)
+    #     ys.append(yi)
+    # ys = torch.cat(ys, dim=2)
 
-    
+    # ys = torch.istft(ys, 512, 256, 512, torch.hann_window(512).pow(0.5)).detach().cpu().numpy()
+    # sf.write('test_wavs/enh_stream.wav', ys.squeeze(), 16000)
+    # print(">>> inference time: mean: {:.1f}ms, max: {:.1f}ms, min: {:.1f}ms".format(sum(times)/len(times), max(times), min(times)))
+    # print(">>> Streaming error:", np.abs(y-ys).max())
+
+
     """ONNX Conversion"""
     import os
     import time
@@ -418,14 +414,15 @@ if __name__ == "__main__":
         onnx_model = onnx.load(file)
         onnx.checker.check_model(onnx_model)
 
-    ## simplify onnx model: exists bugs: to be solved.
-    # if not os.path.exists(file.split('.onnx')[0]+'_simple.onnx'):
-        # model_simp, check = simplify(onnx_model)
-        # assert check, "Simplified ONNX model could not be validated"
-        # onnx.save(model_simp, file.split('.onnx')[0] + '_simple.onnx')
+    # simplify onnx model
+    if not os.path.exists(file.split('.onnx')[0]+'_simple.onnx'):
+        model_simp, check = simplify(onnx_model)
+        assert check, "Simplified ONNX model could not be validated"
+        onnx.save(model_simp, file.split('.onnx')[0] + '_simple.onnx')
+
 
     ## run onnx model
-    session = onnxruntime.InferenceSession(file, None, providers=['CPUExecutionProvider'])
+    session = onnxruntime.InferenceSession(file.split('.onnx')[0] + '_simple.onnx', None, providers=['CPUExecutionProvider'])
     # session = onnxruntime.InferenceSession(file.split('.onnx')[0]+'_simple.onnx', None, providers=['CPUExecutionProvider'])
     conv_cache = np.zeros([2, 1, 16, 16, 33],  dtype="float32")
     tra_cache = np.zeros([2, 3, 1, 1, 16],  dtype="float32")
@@ -435,7 +432,7 @@ if __name__ == "__main__":
     outputs = []
 
     inputs = x.numpy()
-    for i in range(inputs.shape[-2]):
+    for i in tqdm(range(inputs.shape[-2])):
         tic = time.perf_counter()
         
         out_i,  conv_cache, tra_cache, inter_cache \
@@ -450,9 +447,9 @@ if __name__ == "__main__":
 
     outputs = np.concatenate(outputs, axis=2)
     enhanced = istft(outputs[...,0] + 1j * outputs[...,1], n_fft=512, hop_length=256, win_length=512, window=np.hanning(512)**0.5)
-    sf.write('test_wavs/enh_stream.wav', enhanced.squeeze(), 16000)
+    sf.write('test_wavs/enh_onnx.wav', enhanced.squeeze(), 16000)
     
-    print(">>> Onnx error:", np.abs(ys - enhanced).max())
+    # print(">>> Onnx error:", np.abs(ys - enhanced).max())
     print(">>> inference time: mean: {:.1f}ms, max: {:.1f}ms, min: {:.1f}ms".format(1e3*np.mean(T_list), 1e3*np.max(T_list), 1e3*np.min(T_list)))
     print(">>> RTF:", 1e3*np.mean(T_list) / 16)
 
