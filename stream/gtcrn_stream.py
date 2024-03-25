@@ -1,6 +1,6 @@
 """
 GTCRN: ShuffleNetV2 + SFE + TRA + 2 DPGRNN
-Ultra tiny, 39.63 MMACs, 23.67 K params
+Ultra tiny, 33.0 MMACs, 23.67 K params
 """
 import torch
 import numpy as np
@@ -14,9 +14,9 @@ class ERB(nn.Module):
         super().__init__()
         erb_filters = self.erb_filter_banks(erb_subband_1, erb_subband_2, nfft, high_lim, fs)
         nfreqs = nfft//2 + 1
-        nbands = erb_subband_1 + erb_subband_2
-        self.erb_fc = nn.Linear(nfreqs, nbands, bias=False)
-        self.ierb_fc = nn.Linear(nbands, nfreqs, bias=False)
+        self.erb_subband_1 = erb_subband_1
+        self.erb_fc = nn.Linear(nfreqs-erb_subband_1, erb_subband_2, bias=False)
+        self.ierb_fc = nn.Linear(erb_subband_2, nfreqs-erb_subband_1, bias=False)
         self.erb_fc.weight = nn.Parameter(erb_filters, requires_grad=False)
         self.ierb_fc.weight = nn.Parameter(erb_filters.T, requires_grad=False)
 
@@ -34,27 +34,32 @@ class ERB(nn.Module):
         erb_high = self.hz2erb(high_lim)
         erb_points = np.linspace(erb_low, erb_high, erb_subband_2)
         bins = np.round(self.erb2hz(erb_points)/fs*nfft).astype(np.int32)
-        erb_filters = np.zeros([erb_subband_1 + erb_subband_2, nfft // 2 + 1], dtype=np.float32)
+        erb_filters = np.zeros([erb_subband_2, nfft // 2 + 1], dtype=np.float32)
 
-        erb_filters[:erb_subband_1, :erb_subband_1] = np.eye(erb_subband_1, dtype=np.float32)
-        erb_filters[erb_subband_1, bins[0]:bins[1]] = (bins[1] - np.arange(bins[0], bins[1]) + 1e-12) \
+        erb_filters[0, bins[0]:bins[1]] = (bins[1] - np.arange(bins[0], bins[1]) + 1e-12) \
                                                 / (bins[1] - bins[0] + 1e-12)
         for i in range(erb_subband_2-2):
-            erb_filters[erb_subband_1 + i + 1, bins[i]:bins[i+1]] = (np.arange(bins[i], bins[i+1]) - bins[i] + 1e-12)\
+            erb_filters[i + 1, bins[i]:bins[i+1]] = (np.arange(bins[i], bins[i+1]) - bins[i] + 1e-12)\
                                                     / (bins[i+1] - bins[i] + 1e-12)
-            erb_filters[erb_subband_1 + i + 1, bins[i+1]:bins[i+2]] = (bins[i+2] - np.arange(bins[i+1], bins[i + 2])  + 1e-12) \
+            erb_filters[i + 1, bins[i+1]:bins[i+2]] = (bins[i+2] - np.arange(bins[i+1], bins[i + 2])  + 1e-12) \
                                                     / (bins[i + 2] - bins[i+1] + 1e-12)
 
         erb_filters[-1, bins[-2]:bins[-1]+1] = 1- erb_filters[-2, bins[-2]:bins[-1]+1]
+        
+        erb_filters = erb_filters[:, erb_subband_1:]
         return torch.from_numpy(np.abs(erb_filters))
     
     def bm(self, x):
         """x: (B,C,T,F)"""
-        return self.erb_fc(x)
+        x_low = x[..., :self.erb_subband_1]
+        x_high = self.erb_fc(x[..., self.erb_subband_1:])
+        return torch.cat([x_low, x_high], dim=-1)
     
     def bs(self, x_erb):
         """x: (B,C,T,F_erb)"""
-        return self.ierb_fc(x_erb)
+        x_erb_low = x_erb[..., :self.erb_subband_1]
+        x_erb_high = self.ierb_fc(x_erb[..., self.erb_subband_1:])
+        return torch.cat([x_erb_low, x_erb_high], dim=-1)
 
 
 class SFE(nn.Module):
@@ -422,8 +427,8 @@ if __name__ == "__main__":
 
 
     ## run onnx model
-    session = onnxruntime.InferenceSession(file.split('.onnx')[0] + '_simple.onnx', None, providers=['CPUExecutionProvider'])
-    # session = onnxruntime.InferenceSession(file.split('.onnx')[0]+'_simple.onnx', None, providers=['CPUExecutionProvider'])
+    # session = onnxruntime.InferenceSession(file, None, providers=['CPUExecutionProvider'])
+    session = onnxruntime.InferenceSession(file.split('.onnx')[0]+'_simple.onnx', None, providers=['CPUExecutionProvider'])
     conv_cache = np.zeros([2, 1, 16, 16, 33],  dtype="float32")
     tra_cache = np.zeros([2, 3, 1, 1, 16],  dtype="float32")
     inter_cache = np.zeros([2, 1, 33, 16],  dtype="float32")
@@ -449,7 +454,7 @@ if __name__ == "__main__":
     enhanced = istft(outputs[...,0] + 1j * outputs[...,1], n_fft=512, hop_length=256, win_length=512, window=np.hanning(512)**0.5)
     sf.write('test_wavs/enh_onnx.wav', enhanced.squeeze(), 16000)
     
-    # print(">>> Onnx error:", np.abs(ys - enhanced).max())
+    print(">>> Onnx error:", np.abs(y - enhanced).max())
     print(">>> inference time: mean: {:.1f}ms, max: {:.1f}ms, min: {:.1f}ms".format(1e3*np.mean(T_list), 1e3*np.max(T_list), 1e3*np.min(T_list)))
     print(">>> RTF:", 1e3*np.mean(T_list) / 16)
 
