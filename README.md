@@ -31,7 +31,7 @@ Experiments show that GTCRN not only outperforms RNNoise by a substantial margin
 |:--:|:-------:|:--------:|:----------:|:-:|:-:|:--:|
 |Noisy|-|-|2.96|2.65|**3.20**|2.33|
 |RNNoise (2018)|0.06|0.04|3.15|3.45|3.00|2.53|
-|S-DCCRN (2022)|2.34|-|-|3.43|-|-|-|
+|S-DCCRN (2022)|2.34|-|3.43|-|-|-|
 |GTCRN (proposed)|**0.02**|**0.04**|**3.44**|**3.90**|3.00|**2.70**|
 
 ## Pre-trained Models
