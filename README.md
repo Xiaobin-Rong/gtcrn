@@ -25,6 +25,7 @@ Experiments show that GTCRN not only outperforms RNNoise by a substantial margin
 |S-DCCRN (2022)|2.34|-|-|2.84|0.940|
 |GTCRN (proposed)|**0.02**|**0.04**|**18.83**|**2.87**|0.940|
 
+
 **Table 2**: Performance on DNS3 blind test set.
 |    |Para. (M)|MACs (G/s)|DNSMOS-P.808|BAK|SIG|OVRL|
 |:--:|:-------:|:--------:|:----------:|:-:|:-:|:--:|
