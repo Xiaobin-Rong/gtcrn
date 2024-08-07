@@ -20,11 +20,11 @@ class ERB(nn.Module):
         self.ierb_fc.weight = nn.Parameter(erb_filters.T, requires_grad=False)
 
     def hz2erb(self, freq_hz):
-        erb_f = 24.7*np.log10(0.00437*freq_hz + 1)
+        erb_f = 21.4*np.log10(0.00437*freq_hz + 1)
         return erb_f
 
     def erb2hz(self, erb_f):
-        freq_hz = (10**(erb_f/24.7) - 1)/0.00437
+        freq_hz = (10**(erb_f/21.4) - 1)/0.00437
         return freq_hz
 
     def erb_filter_banks(self, erb_subband_1, erb_subband_2, nfft=512, high_lim=8000, fs=16000):
