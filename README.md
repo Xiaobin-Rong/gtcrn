@@ -46,3 +46,26 @@ A streaming GTCRN is provided in `stream` folder, which demonstrates an impressi
 [SEtrain](https://github.com/Xiaobin-Rong/SEtrain): A training code template for DNN-based speech enhancement.
 
 [TRT-SE](https://github.com/Xiaobin-Rong/TRT-SE): An example of how to convert a speech enhancement model into a streaming format and deploy it using ONNX or TensorRT.
+
+
+---
+denoise by using [gtcrn_batch_infer.py](https://github.com/qianjr2002/WavToolKit/blob/main/gtcrn_batch_infer.py)
+
+```
+USAGE:
+python gtcrn_batch_infer.py --ckpt_path checkpoints/model_trained_on_vctk_jrqian19.tar --input_folder VCTK-DEMAND/test/noisy --output_folder VCTK-DEMAND/test/enh_vctk_jrqian_19
+```
+
+```
+aq@linux:/public/home/jingrui_qian/qjr_project/gtcrn_jrqian$ tree -d VCTK-DEMAND/
+VCTK-DEMAND/  # 16kHz resampled
+|-- test 
+|   |-- clean              # clean_testset_wav.zip (147.1Mb)
+|   |-- enh_vctk_jrqian_19 # denoised
+|   `-- noisy              # noisy_testset_wav.zip (162.6Mb)
+`-- train
+    |-- clean              # clean_trainset_28spk_wav.zip (2.315Gb)
+    `-- noisy              # 16kHz noisy_trainset_28spk_wav.zip (2.635Gb)
+
+7 directories
+```
