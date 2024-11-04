@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 # Configuration parameters
 batch_size = 1
-num_epochs = 20
+num_epochs = 200
 learning_rate = 0.001
 checkpoint_dir = 'checkpoints'  # Directory to save the checkpoint
 
@@ -52,6 +52,9 @@ loss_func = HybridLoss().to(device)
 # Define an optimizer
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
+# Training loop with early stopping based on loss threshold
+loss_threshold = 0.5  # Desired loss threshold
+
 # Training loop
 for epoch in range(num_epochs):
     running_loss = 0.0
@@ -75,12 +78,16 @@ for epoch in range(num_epochs):
         optimizer.step()
 
         running_loss += loss.item()
-
-    print(f"Epoch {epoch+1}, Loss: {running_loss/len(train_loader)}")
+    avg_loss = running_loss / len(train_loader)
+    print(f"Epoch {epoch+1}, Loss: {avg_loss}")
+     # Check if the average loss is below the threshold
+    if avg_loss <= loss_threshold:
+        print(f"Stopping training as loss is below {loss_threshold}")
+        break  # Stop training if loss is below the threshold
 
 # Save the trained model
 torch.save({'model': model.state_dict()}, os.path.join(
-    checkpoint_dir, f'model_trained_on_vctk_jrqian{epoch}.tar'))
+    checkpoint_dir, f'model_trained_on_vctk_jrqian{epoch+1}.tar'))
 
 
 print("Training complete and model saved")
