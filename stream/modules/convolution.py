@@ -92,7 +92,7 @@ class StreamConv2d(nn.Module):
         out_cache = inp[:,:, 1:]
         return outp, out_cache
 
-
+## Version 1 
 ## The inference of this implementation is slow, according to https://github.com/Xiaobin-Rong/gtcrn/issues/37
 # class StreamConvTranspose2d(nn.Module):
 #     def __init__(self, 
@@ -165,7 +165,7 @@ class StreamConv2d(nn.Module):
 #         out_cache = inp[:,:, 1:]
 #         return outp, out_cache
 
-
+## Version 2
 class StreamConvTranspose2d(nn.Module):
     def __init__(self, 
                  in_channels: int,
