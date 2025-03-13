@@ -4,7 +4,9 @@ This repository is the official implementation of the ICASSP2024 paper: [GTCRN: 
 Audio examples are available at [Audio examples of GTCRN](https://htmlpreview.github.io/?https://github.com/Xiaobin-Rong/gtcrn_demo/blob/main/index.html).
 
 ## 🔥 News
-- [**2025-3-10**] Now GTCRN is supported by [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) thanks to [Fangjun Kuang](https://github.com/csukuangfj), see in [here](https://github.com/k2-fsa/sherpa-onnx/pull/1977).
+- [**2025-3-13**] A quick inference web is built thanks to [Fangjun Kuang](https://github.com/csukuangfj), see in [web](https://huggingface.co/spaces/k2-fsa/wasm-speech-enhancement-gtcrn).
+- [**2025-3-10**] Now GTCRN is supported by [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) thanks to [Fangjun Kuang](https://github.com/csukuangfj), see [here](https://github.com/k2-fsa/sherpa-onnx/pull/1977).
+- [**2025-3-05**] An improved ultra-lightweight SE model named **UL-UNAS** is proposed, see in [repo](https://github.com/Xiaobin-Rong/ul-unas) and [arxiv](https://arxiv.org/abs/2503.00340).
 
 ## About GTCRN
 Grouped Temporal Convolutional Recurrent Network (GTCRN) is a speech enhancement model requiring ultralow computational resources, featuring only **48.2 K** parameters and **33.0 MMACs** per second.
