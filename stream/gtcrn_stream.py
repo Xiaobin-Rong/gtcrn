@@ -371,6 +371,7 @@ if __name__ == "__main__":
     x = torch.stft(x, 512, 256, 512, torch.hann_window(512).pow(0.5), return_complex=False)[None]
     with torch.no_grad():
         y = model(x)
+    y = torch.view_as_complex(y.contiguous())
     y = torch.istft(y, 512, 256, 512, torch.hann_window(512).pow(0.5)).detach().cpu().numpy()
     sf.write('test_wavs/enh.wav', y.squeeze(), 16000)
     
@@ -389,6 +390,7 @@ if __name__ == "__main__":
     #     times.append((toc-tic)*1000)
     #     ys.append(yi)
     # ys = torch.cat(ys, dim=2)
+    # ys = torch.view_as_complex(ys.contiguous())
 
     # ys = torch.istft(ys, 512, 256, 512, torch.hann_window(512).pow(0.5)).detach().cpu().numpy()
     # sf.write('test_wavs/enh_stream.wav', ys.squeeze(), 16000)
@@ -457,4 +459,5 @@ if __name__ == "__main__":
     print(">>> Onnx error:", np.abs(y - enhanced).max())
     print(">>> inference time: mean: {:.1f}ms, max: {:.1f}ms, min: {:.1f}ms".format(1e3*np.mean(T_list), 1e3*np.max(T_list), 1e3*np.min(T_list)))
     print(">>> RTF:", 1e3*np.mean(T_list) / 16)
+
 
