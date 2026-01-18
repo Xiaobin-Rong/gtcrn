@@ -1,0 +1,138 @@
+# Base image for building
+FROM ubuntu:rolling AS builder
+
+# Set noninteractive installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies
+# Using system Eigen (libeigen3-dev) avoids downloading it during build
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    python3 \
+    python3-pip \
+    libeigen3-dev \
+    libprotobuf-dev \
+    protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone ONNX Runtime (v1.23.2 - latest version as requested)
+ARG ORT_VERSION=v1.23.2
+RUN git clone --depth 1 --branch ${ORT_VERSION} \
+    https://github.com/microsoft/onnxruntime.git
+
+# Copy models for operator analysis
+COPY stream/onnx_models/gtcrn_simple.onnx /build/model.onnx
+COPY stream/onnx_models/gtcrn.onnx /build/model_full.onnx
+
+# Install onnxruntime via pip to use the conversion tool
+RUN pip install onnxruntime onnx --break-system-packages
+
+# Convert ONNX models to ORT format (REQUIRED for minimal build)
+# This generates /build/model.ort and /build/model_full.ort
+RUN python3 -m onnxruntime.tools.convert_onnx_models_to_ort \
+    /build/model.onnx \
+    --output_dir /build && \
+    python3 -m onnxruntime.tools.convert_onnx_models_to_ort \
+    /build/model_full.onnx \
+    --output_dir /build
+
+# Generate reduced ops config FROM BOTH OPTIMIZED ORT MODELS
+# Passing a directory to create_reduced_build_config.py scans all models in it
+RUN cd onnxruntime && \
+    python3 tools/python/create_reduced_build_config.py \
+    /build \
+    /build/required_ops.config
+
+# MANUAL FIXES: Add backup operators to ensure robustness
+# Fix 1 & 2: Basic Math and Neural Network Ops (Gemm, Add, etc.) - CRITICAL
+RUN for op in Add Sub Mul Div Pow Sqrt Exp MatMul Gemm Conv Relu Sigmoid \
+    Tanh ReduceMean Reshape Transpose Squeeze Unsqueeze Gather Slice \
+    Concat Softmax Cast Split Clip Constant Identity; do \
+    for ver in $(seq 1 21); do \
+    echo "ai.onnx;$ver;$op" >> /build/required_ops.config; \
+    done; \
+    done
+
+# Fix 3: Shape/Tensor/Logic
+RUN for op in Pad Flatten Shape Size Tile Expand Where Equal Less Greater \
+    Not And Or Xor LeakyRelu Einsum TopK ArgMax ArgMin Dropout \
+    BatchNormalization Abs Neg Ceil Floor Round; do \
+    for ver in $(seq 1 21); do \
+    echo "ai.onnx;$ver;$op" >> /build/required_ops.config; \
+    done; \
+    done
+
+# Fix 4: Activations/Pool
+RUN for op in PRelu Elu Selu Softplus Softsign HardSigmoid AveragePool \
+    MaxPool GlobalAveragePool GlobalMaxPool Upsample Resize LRN \
+    InstanceNormalization; do \
+    for ver in $(seq 1 21); do \
+    echo "ai.onnx;$ver;$op" >> /build/required_ops.config; \
+    done; \
+    done
+
+# Fix 5: RNNs
+RUN for op in GRU LSTM RNN Scan Loop If; do \
+    for ver in $(seq 1 21); do \
+    echo "ai.onnx;$ver;$op" >> /build/required_ops.config; \
+    done; \
+    done
+
+# Fix 6: Scatter/Gather/Math
+RUN for op in Scatter ScatterND ScatterElements Gather GatherND \
+    GatherElements OneHot NonMaxSuppression RoiAlign CumSum IsInf IsNaN \
+    Sign Trilu Det Mod BitShiftLeft BitShiftRight Acos Acosh Asin Asinh \
+    Atan Atanh Cos Cosh Sin Sinh Tan Erf; do \
+    for ver in $(seq 1 21); do \
+    echo "ai.onnx;$ver;$op" >> /build/required_ops.config; \
+    done; \
+    done
+
+# Fix 7: ConvTranspose/Norms
+RUN for op in ConvTranspose ConvInteger QLinearConv BatchNormalization \
+    InstanceNormalization MeanVarianceNormalization LayerNormalization \
+    GroupNormalization; do \
+    for ver in $(seq 1 21); do \
+    echo "ai.onnx;$ver;$op" >> /build/required_ops.config; \
+    done; \
+    done
+
+# Patch source code for GCC 13/14 compatibility (Ubuntu Rolling)
+RUN cd onnxruntime && \
+    sed -i '1i#include <cstdint>' \
+    onnxruntime/core/optimizer/transpose_optimization/optimizer_api.h && \
+    sed -i '1i#include <cstdint>' onnxruntime/core/common/semver.h
+
+# Build minimal ONNX Runtime as STATIC library
+RUN cd onnxruntime && \
+    ./build.sh \
+    --config Release \
+    --parallel $(nproc) \
+    --skip_tests \
+    --minimal_build extended \
+    --disable_ml_ops \
+    --include_ops_by_config /build/required_ops.config \
+    --allow_running_as_root \
+    --cmake_extra_defines \
+    onnxruntime_USE_PREINSTALLED_EIGEN=ON \
+    eigen_SOURCE_PATH=/usr/include/eigen3 \
+    CMAKE_INSTALL_PREFIX=/build/install \
+    onnxruntime_BUILD_UNIT_TESTS=OFF \
+    onnxruntime_BUILD_BENCHMARKS=OFF \
+    onnxruntime_ENABLE_PYTHON=OFF \
+    onnxruntime_BUILD_SHARED_LIB=OFF
+
+# Collect all static libraries to output directory
+RUN mkdir -p /build/install/lib /build/install/include && \
+    find /onnxruntime/build/Linux/Release -name "*.a" \
+    -exec cp {} /build/install/lib/ \; && \
+    cp -r /onnxruntime/include/onnxruntime /build/install/include/
+
+# Final minimal image with libraries
+FROM ubuntu:rolling AS export
+COPY --from=builder /build/install /onnxruntime-minimal
+COPY --from=builder /build/required_ops.config /required_ops.config
+COPY --from=builder /build/model.ort /model.ort
+COPY --from=builder /build/model_full.ort /model_full.ort
