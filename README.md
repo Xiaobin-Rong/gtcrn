@@ -4,6 +4,7 @@ This repository is the official implementation of the ICASSP2024 paper: [GTCRN: 
 Audio examples are available at [Audio examples of GTCRN](https://htmlpreview.github.io/?https://github.com/Xiaobin-Rong/gtcrn_demo/blob/main/index.html).
 
 ## 🔥 News
+- [**2026-1-18**] Added a LADSPA plugin for filtering live audio on Linux using pipewire. Please note that LADSPA support is experimental and currently maintained by community contributor [Bruno Gonçalves](https://github.com/bigbruno).
 - [**2025-5-27**] A lightweight hybrid dual-channel SE system adapted for low-SNR conditions is released in [H-GTCRN](https://github.com/Max1Wz/H-GTCRN).
 - [**2025-3-13**] A quick inference web is built thanks to [Fangjun Kuang](https://github.com/csukuangfj), see in [web](https://huggingface.co/spaces/k2-fsa/wasm-speech-enhancement-gtcrn).
 - [**2025-3-10**] Now GTCRN is supported by [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) thanks to [Fangjun Kuang](https://github.com/csukuangfj), see [here](https://github.com/k2-fsa/sherpa-onnx/pull/1977).
