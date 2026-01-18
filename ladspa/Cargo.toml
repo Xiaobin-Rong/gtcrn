@@ -1,0 +1,68 @@
+[package]
+name = "gtcrn-ladspa-ort"
+version = "1.0.0"
+edition = "2021"
+authors = ["BigLinux"]
+license = "MIT"
+description = "GTCRN Speech Enhancement LADSPA plugin using ONNX Runtime"
+readme = "README.md"
+
+[lib]
+name = "gtcrn_ladspa_ort"
+crate-type = ["cdylib"]
+
+[features]
+default = ["dynamic"]
+
+# Dynamic linking - requires onnxruntime installed on system
+# Use: cargo build --release
+# Requires: pacman -S onnxruntime
+dynamic = ["ort/load-dynamic"]
+
+# Download prebuilt binaries - downloads ONNX Runtime from Microsoft
+# Use: cargo build --release --features download --no-default-features
+# No system dependency, downloads ~50MB binaries during build
+download = ["ort/download-binaries", "ort-sys/tls-rustls"]
+
+# Minimal build - uses custom-built minimal ONNX Runtime with dynamic linking
+# Use: ./build-minimal-docker.sh first, then: ./build.sh minimal
+# Produces plugin + libonnxruntime.so (2 files, ~6MB total)
+minimal = []
+
+# Static build - embeds minimal ONNX Runtime into single .so file
+# Use: ./build-minimal-docker.sh first, then: ./build.sh static
+# Produces single plugin file (~6MB)
+static = ["ort-sys/disable-linking"]
+
+[dependencies]
+# LADSPA plugin interface
+ladspa = "0.3"
+
+# ONNX Runtime - features controlled by our features above
+# Using rc.11 (latest) which targets modern ORT APIs (compatible with 1.23.2)
+ort = { version = "2.0.0-rc.11", default-features = false }
+ort-sys = { version = "2.0.0-rc.11", default-features = false }
+ndarray = "0.16"
+
+# Resampling for 48kHz <-> 16kHz conversion
+rubato = "0.16"
+
+# Lock-free ring buffer for audio threading
+ringbuf = "0.4"
+
+# FFT for STFT processing
+realfft = "3.4"
+
+# Lazy static initialization
+once_cell = "1.20"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
+
+# Faster compilation for static build (used during ONNX Runtime compilation)
+[profile.release.build-override]
+opt-level = 0
+codegen-units = 16
