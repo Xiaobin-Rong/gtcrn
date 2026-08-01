@@ -1,0 +1,9 @@
+# Install a PyTorch build appropriate for the target CPU/CUDA platform first.
+# The upstream requirements remain the source for the core model dependencies.
+-r requirements.txt
+
+# Additional dependencies used by tools/enhance_file.py and the streaming
+# ONNX validation/benchmark utilities.
+scipy>=1.12,<2
+onnx>=1.16,<2
+onnxruntime>=1.19,<2

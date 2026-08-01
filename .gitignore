@@ -1,0 +1,40 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Private fine-tuning weights and experiment outputs
+private_weights/
+checkpoints_finetuned/
+training_runs/
+runs/
+artifacts/
+wandb/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*_finetuned.onnx
+*_finetuned.tar
+
+# Keep the official public checkpoints tracked, but ignore newly generated ones
+checkpoints/*
+!checkpoints/model_trained_on_dns3.tar
+!checkpoints/model_trained_on_vctk.tar
+
+# Local inference and benchmark outputs
+batch_test_input/
+batch_test_output/
+test outputs/
+benchmark_results*.json
+stream_metrics*.json
+failed_files.txt
+enhance_results.csv
+*.log

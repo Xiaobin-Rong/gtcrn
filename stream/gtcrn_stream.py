@@ -368,10 +368,14 @@ if __name__ == "__main__":
     """Streaming Conversion"""
     ### offline inference
     x = torch.from_numpy(sf.read('test_wavs/mix.wav', dtype='float32')[0])
-    x = torch.stft(x, 512, 256, 512, torch.hann_window(512).pow(0.5), return_complex=False)[None]
+    x = torch.view_as_real(
+        torch.stft(x, 512, 256, 512,
+                   torch.hann_window(512).pow(0.5), return_complex=True)
+    )[None]
     with torch.no_grad():
         y = model(x)
-    y = torch.istft(y, 512, 256, 512, torch.hann_window(512).pow(0.5)).detach().cpu().numpy()
+    y = torch.istft(torch.view_as_complex(y.contiguous()), 512, 256, 512,
+                    torch.hann_window(512).pow(0.5)).detach().cpu().numpy()
     sf.write('test_wavs/enh.wav', y.squeeze(), 16000)
     
     ### online (streaming) inference

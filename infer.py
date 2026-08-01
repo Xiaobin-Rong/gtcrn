@@ -15,10 +15,14 @@ mix, fs = sf.read(os.path.join('test_wavs', 'mix.wav'), dtype='float32')
 assert fs == 16000
 
 ## inference
-input = torch.stft(torch.from_numpy(mix), 512, 256, 512, torch.hann_window(512).pow(0.5), return_complex=False)
+input = torch.view_as_real(
+    torch.stft(torch.from_numpy(mix), 512, 256, 512,
+               torch.hann_window(512).pow(0.5), return_complex=True)
+)
 with torch.no_grad():
     output = model(input[None])[0]
-enh = torch.istft(output, 512, 256, 512, torch.hann_window(512).pow(0.5), return_complex=False)
+enh = torch.istft(torch.view_as_complex(output.contiguous()), 512, 256, 512,
+                  torch.hann_window(512).pow(0.5), return_complex=False)
 
 ## save enhanced wav
 sf.write(os.path.join('test_wavs', 'enh.wav'), enh.detach().cpu().numpy(), fs)
