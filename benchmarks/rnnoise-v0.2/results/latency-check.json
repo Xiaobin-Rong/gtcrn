@@ -1,0 +1,32 @@
+[
+  {
+    "filename": "p232_001.wav",
+    "raw_output_lag_samples_48k": 960,
+    "input_samples": 83582,
+    "output_samples": 83582
+  },
+  {
+    "filename": "p232_002.wav",
+    "raw_output_lag_samples_48k": 960,
+    "input_samples": 130330,
+    "output_samples": 130330
+  },
+  {
+    "filename": "p232_003.wav",
+    "raw_output_lag_samples_48k": 960,
+    "input_samples": 344873,
+    "output_samples": 344873
+  },
+  {
+    "filename": "p232_005.wav",
+    "raw_output_lag_samples_48k": 960,
+    "input_samples": 299838,
+    "output_samples": 299838
+  },
+  {
+    "filename": "p232_006.wav",
+    "raw_output_lag_samples_48k": 960,
+    "input_samples": 244968,
+    "output_samples": 244968
+  }
+]

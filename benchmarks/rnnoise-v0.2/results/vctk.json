@@ -1,0 +1,29 @@
+{
+  "dataset": "vctk",
+  "clips": 824,
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "python": "3.12.2",
+  "models": {
+    "Noisy": {
+      "SISNR": 8.449433625574182,
+      "PESQ": 1.9667510838763227,
+      "STOI": 0.9210894342640091
+    },
+    "RNNoise v0.2": {
+      "SISNR": 13.260312079207749,
+      "PESQ": 2.452686572248496,
+      "STOI": 0.9222692381590853
+    },
+    "GTCRN": {
+      "SISNR": 18.79652094560463,
+      "PESQ": 2.8546488794308265,
+      "STOI": 0.9405408621665274
+    }
+  },
+  "artifact_sha256": {
+    "csv": "a44fff868ea69b3958de2bfdf946d55b698382144af5f42d9e71cb8835fadbec",
+    "evaluate.py": "4c90fd829c93d23e11d1ac33b7623a455094419a3219add37b239751beba96d4",
+    "rnnoise_library": "1d47ce316875cf4b99008febef3982cea5a3f6008140f4009550931f5e7a24e0",
+    "gtcrn_checkpoint": "a0f0e04421d9fc1efe734d44191f5dc4b973ce59d6546af8d64ad9167e2a9944"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "dataset": "dns3",
+  "clips": 600,
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "python": "3.12.2",
+  "models": {
+    "Noisy": {
+      "P808_MOS": 2.9636226805051167,
+      "BAK": 2.6462679020171733,
+      "SIG": 3.198152666242826,
+      "OVRL": 2.3333210592620683
+    },
+    "RNNoise v0.2": {
+      "P808_MOS": 3.306396023829778,
+      "BAK": 3.650141411844111,
+      "SIG": 3.0816932378353066,
+      "OVRL": 2.675408409271194
+    },
+    "GTCRN": {
+      "P808_MOS": 3.446713888645172,
+      "BAK": 3.897492887432224,
+      "SIG": 2.9966702074881613,
+      "OVRL": 2.704474468127167
+    }
+  },
+  "artifact_sha256": {
+    "csv": "99d3d4dc41d5694ea6a797e7654baed04d262c95bb978b380ca878a324279463",
+    "evaluate.py": "4c90fd829c93d23e11d1ac33b7623a455094419a3219add37b239751beba96d4",
+    "rnnoise_library": "1d47ce316875cf4b99008febef3982cea5a3f6008140f4009550931f5e7a24e0",
+    "gtcrn_checkpoint": "a630d992cf792daf4ce2bb5bcf9c4d389f740a8f09c6e0971184697fe6371b79",
+    "dnsmos_local.py": "1ab566afe006daab32ac7073296a5d0ef99f8b82f91c7266f3ccf26113d7a28b",
+    "DNSMOS/sig_bak_ovr.onnx": "269fbebdb513aa23cddfbb593542ecc540284a91849ac50516870e1ac78f6edd",
+    "DNSMOS/model_v8.onnx": "9246480c58567bc6affd4200938e77eef49468c8bc7ed3776d109c07456f6e91"
+  }
+}

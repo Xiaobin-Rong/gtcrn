@@ -1,0 +1,3 @@
+# Local benchmark downloads, environments, and Python caches.
+benchmark-work/
+__pycache__/
